@@ -31,6 +31,8 @@ chmod +x deploy.sh
 WHISPER_DATA_DIR=/data ./deploy.sh
 ```
 
+If `/opt/whisper-transcribe/.env` does not exist, `deploy.sh` creates one with a generated `WHISPER_API_KEY`. Use that value in the `X-API-Key` header for all `/api/v1/*` endpoints.
+
 Enable PM2 startup and install proxy:
 
 ```bash

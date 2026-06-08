@@ -19,6 +19,7 @@ chmod +x deploy.sh
 ```
 
 The script creates `.venv`, installs the app, creates the data directory, and starts or restarts `whisper-transcribe` in PM2.
+If `.env` does not exist, it also creates one with a generated `WHISPER_API_KEY`.
 
 Common overrides:
 
@@ -36,6 +37,7 @@ Create a session:
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/sessions \
+  -H "X-API-Key: your-secret" \
   -H "Content-Type: application/json" \
   -d '{"title":"Weekly sync","source":"obsidian"}'
 ```
@@ -44,24 +46,39 @@ Upload an audio chunk:
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/sessions/{session_id}/transcribe \
+  -H "X-API-Key: your-secret" \
   -F "audio=@chunk.wav"
 ```
 
 Complete a session:
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/sessions/{session_id}/complete
+curl -X POST http://localhost:8000/api/v1/sessions/{session_id}/complete \
+  -H "X-API-Key: your-secret"
 ```
 
 ## Configuration
 
 Environment variables:
 
+- `WHISPER_API_KEY`: required API key for protected endpoints
 - `WHISPER_DATA_DIR`: session storage directory, default `./data`
 - `WHISPER_MODEL_NAME`: Faster-Whisper model, default `large-v3-turbo`
 - `WHISPER_DEVICE`: default `cpu`
 - `WHISPER_COMPUTE_TYPE`: default `int8`
 - `WHISPER_LOG_LEVEL`: default `INFO`
+
+Create a local `.env` file:
+
+```bash
+cp .env.example .env
+```
+
+Then replace `WHISPER_API_KEY` with a long random secret. All `/api/v1/*` endpoints require this header:
+
+```text
+X-API-Key: your-secret
+```
 
 Session files are stored under:
 

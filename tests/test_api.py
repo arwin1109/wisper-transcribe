@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.dependencies import get_storage, get_transcriber
+from app.core.config import Settings, get_settings
 from app.main import app
 from app.services.storage import SessionStorage
 from app.services.transcriber import TranscriptionResult
@@ -25,6 +26,10 @@ def client(tmp_path):
 
     app.dependency_overrides[get_storage] = lambda: storage
     app.dependency_overrides[get_transcriber] = lambda: FakeTranscriber()
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        data_dir=tmp_path,
+        api_key="test-api-key",
+    )
 
     with TestClient(app) as test_client:
         yield test_client, storage
@@ -46,6 +51,7 @@ def test_session_lifecycle_persists_transcript(client):
 
     create_response = test_client.post(
         "/api/v1/sessions",
+        headers={"X-API-Key": "test-api-key"},
         json={"title": "Weekly sync", "source": "obsidian"},
     )
     assert create_response.status_code == 201
@@ -54,6 +60,7 @@ def test_session_lifecycle_persists_transcript(client):
 
     transcribe_response = test_client.post(
         f"/api/v1/sessions/{session_id}/transcribe",
+        headers={"X-API-Key": "test-api-key"},
         files={"audio": ("chunk.wav", b"fake audio", "audio/wav")},
     )
     assert transcribe_response.status_code == 200
@@ -67,7 +74,10 @@ def test_session_lifecycle_persists_transcript(client):
     assert transcription["chunk_id"] in transcript_text
     assert transcription["text"] in transcript_text
 
-    complete_response = test_client.post(f"/api/v1/sessions/{session_id}/complete")
+    complete_response = test_client.post(
+        f"/api/v1/sessions/{session_id}/complete",
+        headers={"X-API-Key": "test-api-key"},
+    )
     assert complete_response.status_code == 200
     assert complete_response.json()["status"] == "completed"
 
@@ -77,6 +87,7 @@ def test_unknown_session_returns_404(client):
 
     response = test_client.post(
         "/api/v1/sessions/00000000-0000-0000-0000-000000000000/transcribe",
+        headers={"X-API-Key": "test-api-key"},
         files={"audio": ("chunk.wav", b"fake audio", "audio/wav")},
     )
 
@@ -88,7 +99,31 @@ def test_invalid_session_id_returns_422(client):
 
     response = test_client.post(
         "/api/v1/sessions/not-a-uuid/transcribe",
+        headers={"X-API-Key": "test-api-key"},
         files={"audio": ("chunk.wav", b"fake audio", "audio/wav")},
     )
 
     assert response.status_code == 422
+
+
+def test_protected_endpoint_requires_api_key(client):
+    test_client, _ = client
+
+    response = test_client.post(
+        "/api/v1/sessions",
+        json={"title": "Weekly sync", "source": "obsidian"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_protected_endpoint_rejects_invalid_api_key(client):
+    test_client, _ = client
+
+    response = test_client.post(
+        "/api/v1/sessions",
+        headers={"X-API-Key": "wrong-key"},
+        json={"title": "Weekly sync", "source": "obsidian"},
+    )
+
+    assert response.status_code == 401

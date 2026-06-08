@@ -7,13 +7,14 @@ PYTHON_BIN="${PYTHON_BIN:-python3.12}"
 HOST="${HOST:-0.0.0.0}"
 PORT="${PORT:-8000}"
 VENV_DIR="${VENV_DIR:-$APP_DIR/.venv}"
-DATA_DIR="${WHISPER_DATA_DIR:-$APP_DIR/data}"
+ENV_FILE="${ENV_FILE:-$APP_DIR/.env}"
 
-export WHISPER_DATA_DIR="$DATA_DIR"
-export WHISPER_MODEL_NAME="${WHISPER_MODEL_NAME:-large-v3-turbo}"
-export WHISPER_DEVICE="${WHISPER_DEVICE:-cpu}"
-export WHISPER_COMPUTE_TYPE="${WHISPER_COMPUTE_TYPE:-int8}"
-export WHISPER_LOG_LEVEL="${WHISPER_LOG_LEVEL:-INFO}"
+INPUT_WHISPER_API_KEY="${WHISPER_API_KEY:-}"
+INPUT_WHISPER_DATA_DIR="${WHISPER_DATA_DIR:-}"
+INPUT_WHISPER_MODEL_NAME="${WHISPER_MODEL_NAME:-}"
+INPUT_WHISPER_DEVICE="${WHISPER_DEVICE:-}"
+INPUT_WHISPER_COMPUTE_TYPE="${WHISPER_COMPUTE_TYPE:-}"
+INPUT_WHISPER_LOG_LEVEL="${WHISPER_LOG_LEVEL:-}"
 
 log() {
   printf '[deploy] %s\n' "$*"
@@ -30,6 +31,35 @@ require_command "$PYTHON_BIN"
 require_command pm2
 
 cd "$APP_DIR"
+
+if [ ! -f "$ENV_FILE" ]; then
+  generated_api_key="${INPUT_WHISPER_API_KEY:-$("$PYTHON_BIN" -c 'import secrets; print(secrets.token_urlsafe(32))')}"
+  generated_data_dir="${INPUT_WHISPER_DATA_DIR:-$APP_DIR/data}"
+  cat > "$ENV_FILE" <<EOF
+WHISPER_API_KEY=$generated_api_key
+WHISPER_DATA_DIR=$generated_data_dir
+WHISPER_MODEL_NAME=large-v3-turbo
+WHISPER_DEVICE=cpu
+WHISPER_COMPUTE_TYPE=int8
+WHISPER_LOG_LEVEL=INFO
+EOF
+  chmod 600 "$ENV_FILE"
+  log "created $ENV_FILE with a generated WHISPER_API_KEY"
+fi
+
+set -a
+# shellcheck disable=SC1090
+. "$ENV_FILE"
+set +a
+
+export WHISPER_API_KEY="${INPUT_WHISPER_API_KEY:-${WHISPER_API_KEY:-}}"
+export WHISPER_DATA_DIR="${INPUT_WHISPER_DATA_DIR:-${WHISPER_DATA_DIR:-$APP_DIR/data}}"
+export WHISPER_MODEL_NAME="${INPUT_WHISPER_MODEL_NAME:-${WHISPER_MODEL_NAME:-large-v3-turbo}}"
+export WHISPER_DEVICE="${INPUT_WHISPER_DEVICE:-${WHISPER_DEVICE:-cpu}}"
+export WHISPER_COMPUTE_TYPE="${INPUT_WHISPER_COMPUTE_TYPE:-${WHISPER_COMPUTE_TYPE:-int8}}"
+export WHISPER_LOG_LEVEL="${INPUT_WHISPER_LOG_LEVEL:-${WHISPER_LOG_LEVEL:-INFO}}"
+
+DATA_DIR="$WHISPER_DATA_DIR"
 mkdir -p "$DATA_DIR/sessions"
 
 if [ ! -x "$VENV_DIR/bin/python" ]; then
@@ -63,4 +93,3 @@ pm2 save
 
 log "deployment complete"
 log "health: http://127.0.0.1:$PORT/health"
-

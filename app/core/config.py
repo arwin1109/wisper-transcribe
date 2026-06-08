@@ -13,9 +13,9 @@ class Settings(BaseSettings):
     device: str = Field(default="cpu")
     compute_type: str = Field(default="int8")
     log_level: str = Field(default="INFO")
+    api_key: str | None = Field(default=None)
 
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-

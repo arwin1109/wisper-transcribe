@@ -5,6 +5,7 @@ import structlog
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from starlette.concurrency import run_in_threadpool
 
+from app.api.auth import require_api_key
 from app.api.dependencies import get_storage, get_transcriber
 from app.models.schemas import (
     CompleteSessionResponse,
@@ -30,6 +31,7 @@ def health() -> HealthResponse:
     "/api/v1/sessions",
     response_model=SessionResponse,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_api_key)],
 )
 def create_session(
     request: CreateSessionRequest,
@@ -43,6 +45,7 @@ def create_session(
 @router.post(
     "/api/v1/sessions/{session_id}/transcribe",
     response_model=TranscriptionResponse,
+    dependencies=[Depends(require_api_key)],
 )
 async def transcribe_chunk(
     session_id: UUID,
@@ -80,6 +83,7 @@ async def transcribe_chunk(
 @router.post(
     "/api/v1/sessions/{session_id}/complete",
     response_model=CompleteSessionResponse,
+    dependencies=[Depends(require_api_key)],
 )
 def complete_session(
     session_id: UUID,
