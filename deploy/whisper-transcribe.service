@@ -1,0 +1,21 @@
+[Unit]
+Description=Whisper Transcribe FastAPI service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=whisper
+Group=whisper
+WorkingDirectory=/opt/whisper-transcribe
+Environment=WHISPER_DATA_DIR=/data
+Environment=WHISPER_MODEL_NAME=large-v3-turbo
+Environment=WHISPER_DEVICE=cpu
+Environment=WHISPER_COMPUTE_TYPE=int8
+ExecStart=/opt/whisper-transcribe/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+

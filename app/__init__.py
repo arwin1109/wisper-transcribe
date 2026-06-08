@@ -1,0 +1,2 @@
+"""Whisper transcription service."""
+
