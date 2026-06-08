@@ -94,7 +94,7 @@ def audio_files(audio_dir: Path) -> list[Path]:
 def main() -> int:
     load_dotenv(BASE_DIR / ".env")
 
-    base_url = os.getenv("WHISPER_TEST_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+    base_url = os.getenv("WHISPER_TEST_BASE_URL", "http://192.168.1.181:8000").rstrip("/")
     api_key = os.getenv("WHISPER_API_KEY")
     audio_dir = Path(os.getenv("WHISPER_TEST_AUDIO_DIR", str(DEFAULT_AUDIO_DIR)))
 

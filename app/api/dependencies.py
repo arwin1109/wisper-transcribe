@@ -18,5 +18,6 @@ def get_transcriber() -> FasterWhisperTranscriber:
         model_name=settings.model_name,
         device=settings.device,
         compute_type=settings.compute_type,
+        cpu_threads=settings.cpu_threads,
+        num_workers=settings.num_workers,
     )
-

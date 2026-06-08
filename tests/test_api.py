@@ -94,6 +94,32 @@ def test_unknown_session_returns_404(client):
     assert response.status_code == 404
 
 
+def test_transcribe_rejects_upload_above_limit(client):
+    test_client, _ = client
+
+    create_response = test_client.post(
+        "/api/v1/sessions",
+        headers={"X-API-Key": "test-api-key"},
+        json={"title": "Weekly sync", "source": "obsidian"},
+    )
+    session_id = create_response.json()["session_id"]
+
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        data_dir=Path("/unused"),
+        api_key="test-api-key",
+        max_upload_mb=1,
+    )
+
+    response = test_client.post(
+        f"/api/v1/sessions/{session_id}/transcribe",
+        headers={"X-API-Key": "test-api-key"},
+        files={"audio": ("chunk.wav", b"x" * (1024 * 1024 + 1), "audio/wav")},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == "Audio upload exceeds 1 MB"
+
+
 def test_invalid_session_id_returns_422(client):
     test_client, _ = client
 

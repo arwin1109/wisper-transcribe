@@ -63,10 +63,15 @@ Environment variables:
 
 - `WHISPER_API_KEY`: required API key for protected endpoints
 - `WHISPER_DATA_DIR`: session storage directory, default `./data`
-- `WHISPER_MODEL_NAME`: Faster-Whisper model, default `large-v3-turbo`
+- `WHISPER_MODEL_NAME`: Faster-Whisper model, default `small`
 - `WHISPER_DEVICE`: default `cpu`
 - `WHISPER_COMPUTE_TYPE`: default `int8`
+- `WHISPER_CPU_THREADS`: CPU threads used by Faster-Whisper, default `2`
+- `WHISPER_NUM_WORKERS`: Faster-Whisper worker count, default `1`
+- `WHISPER_MAX_UPLOAD_MB`: maximum audio upload size, default `100`
 - `WHISPER_LOG_LEVEL`: default `INFO`
+
+For CPU-only machines, keep `WHISPER_NUM_WORKERS=1` and avoid large models unless the host has enough free RAM. The service also serializes transcription inside each app worker so concurrent requests do not stack multiple Whisper jobs in memory.
 
 Create a local `.env` file:
 

@@ -13,6 +13,10 @@ class SessionNotFoundError(Exception):
     pass
 
 
+class UploadTooLargeError(Exception):
+    pass
+
+
 def utc_now() -> datetime:
     return datetime.now(UTC)
 
@@ -50,14 +54,24 @@ class SessionStorage:
             raise SessionNotFoundError(session_id)
         return json.loads(metadata_path.read_text(encoding="utf-8"))
 
-    async def save_chunk(self, session_id: str, upload: UploadFile) -> tuple[str, Path]:
+    async def save_chunk(
+        self,
+        session_id: str,
+        upload: UploadFile,
+        max_bytes: int | None = None,
+    ) -> tuple[str, Path]:
         metadata = self.get_session(session_id)
         chunk_id = f"{len(metadata['chunks']) + 1:06d}-{uuid4().hex}"
         suffix = Path(upload.filename or "").suffix or ".audio"
         chunk_path = self._session_dir(session_id) / "chunks" / f"{chunk_id}{suffix}"
 
+        bytes_written = 0
         with chunk_path.open("wb") as destination:
             while content := await upload.read(1024 * 1024):
+                bytes_written += len(content)
+                if max_bytes is not None and bytes_written > max_bytes:
+                    chunk_path.unlink(missing_ok=True)
+                    raise UploadTooLargeError(upload.filename or "audio")
                 destination.write(content)
 
         now = utc_now().isoformat()
@@ -123,4 +137,3 @@ class SessionStorage:
             json.dumps(metadata, indent=2, sort_keys=True),
             encoding="utf-8",
         )
-
