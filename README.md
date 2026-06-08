@@ -93,3 +93,13 @@ Session files are stored under:
 ```bash
 pytest
 ```
+
+## Whisper Smoke Test
+
+Place sample audio files in `sample-audios/`, start the API, then run:
+
+```bash
+python test/test.py
+```
+
+The script reads `WHISPER_API_KEY` from `.env` and sends each supported audio file to the transcription endpoint.

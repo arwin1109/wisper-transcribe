@@ -22,6 +22,8 @@ dist/
 *.egg-info/
 
 data/
+sample-audios/*
+!sample-audios/.gitkeep
 .env
 .env.*
 !.env.example
